@@ -3,6 +3,7 @@ module globetrot
 go 1.16
 
 require (
+	github.com/denisenkom/go-mssqldb v0.10.0 // indirect
 	github.com/go-pg/pg/v10 v10.10.1 // indirect
 	github.com/go-sql-driver/mysql v1.6.0 // indirect
 	github.com/jackc/pgx/v4 v4.11.0 // indirect

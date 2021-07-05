@@ -13,32 +13,6 @@ type PostgresDatabase struct {
 	database   string
 }
 
-const create_scripts_run_table_script = `
-CREATE OR REPLACE FUNCTION CreateGlobetrotScriptsRunTable(in schName varchar, in tblName varchar) RETURNS void AS $$
-DECLARE 
-    t_exists integer;
-    t_user varchar(255);
-    t_table varchar(255);
-BEGIN
-	SELECT INTO t_exists COUNT(*) FROM pg_tables WHERE schemaname = lower(schName) and tablename = lower(tblName);
-	SELECT current_user into t_user;
-	SELECT lower(schName) || '.' || lower(tblName) into t_table;
-		
-	IF t_exists = 0 THEN
-		EXECUTE 'CREATE TABLE ' || t_table || '
-		( 
-			script_name		varchar(255)		NULL
-			,hash		varchar(512)		NULL
-			,date		timestamp		NOT NULL default current_timestamp
-		);
-		alter table ' || t_table || ' add constraint ' || replace(t_table, '.', '_') || '_pk' || ' primary key (script_name);
-		GRANT SELECT ON TABLE ' || t_table || ' TO public;';
-	END IF;
-END;
-$$ LANGUAGE 'plpgsql';
-SELECT CreateGlobetrotScriptsRunTable('{0}', '{1}');
-DROP FUNCTION CreateGlobetrotScriptsRunTable(in schName varchar, in tblName varchar);`
-
 func (postgres *PostgresDatabase) Connect(username string, password string, host string, port int, database string) {
 	postgres.database = database
 	cs := fmt.Sprintf("postgresql://%s:%s@%s:%d/%s", username, password, host, port, database)
