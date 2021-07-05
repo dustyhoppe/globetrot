@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"globetrot/database/common"
 	"globetrot/database/mysql"
+	"globetrot/database/postgres"
 	"os"
 )
 
@@ -19,6 +20,8 @@ func NewDatabase(databaseType string) Database {
 	switch databaseType {
 	case "mysql":
 		return new(mysql.MySqlDatabase)
+	case "postgres":
+		return new(postgres.PostgresDatabase)
 	default:
 		fmt.Printf("ERROR: %s is not a supported database type\n", databaseType)
 		os.Exit(1)

@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"globetrot/database"
 	"hash"
-	"io/fs"
 	"io/ioutil"
-	"path/filepath"
+	"path"
+	"strings"
 	"time"
 )
 
@@ -19,6 +19,9 @@ type Runner struct {
 	Logger      *Logger
 	FileManager *FileManager
 }
+
+type RunScriptFunc func(path string)
+type GetScriptFilesFunc func() ([]string, error)
 
 func (r *Runner) Init(config Config) {
 	r.Config = config
@@ -47,17 +50,8 @@ func (r *Runner) Migrate() {
 	r.Database.CreateMigrationsTable()
 	r.Logger.Details("Creating migration metadata table if necessary.\n")
 
-	upPath := r.Config.FilePath + "/up"
-	p := filepath.FromSlash(upPath)
-
-	files, err := r.FileManager.GetUpScripts()
-	if err != nil {
-		r.Logger.Fatal(err.Error())
-	}
-
-	for _, f := range files {
-		r.RunUpScript(p, f)
-	}
+	r.applyScripts(r.RunUpScript, r.FileManager.GetUpScripts)
+	r.applyScripts(r.RunProcScript, r.FileManager.GetProcScripts)
 
 	r.Database.Close()
 
@@ -67,10 +61,10 @@ func (r *Runner) Migrate() {
 	r.Logger.Success(fmt.Sprintf("\n-----------------------------\nMigration complete. %v elapsed\n-----------------------------", elapsed))
 }
 
-func (r Runner) RunUpScript(upPath string, file fs.FileInfo) {
-	script_name := file.Name()
+func (r Runner) RunUpScript(upPath string) {
+	_, script_name := path.Split(upPath)
 
-	b, err := ioutil.ReadFile(upPath + "/" + file.Name())
+	b, err := ioutil.ReadFile(upPath)
 	if err != nil {
 		r.Logger.Fatal(err.Error())
 	}
@@ -83,9 +77,64 @@ func (r Runner) RunUpScript(upPath string, file fs.FileInfo) {
 		r.Logger.Fatal(fmt.Sprintf("Changing of one-time script '%s' not allowed after application.\n", script_name))
 	}
 	if script_row == nil {
-		r.Database.ApplyScript(sql, script_name, sha)
+		if !r.Config.DryRun {
+			r.Database.ApplyScript(sql, script_name, sha)
+		}
 		r.Logger.Success(fmt.Sprintf("APPLIED SCRIPT: %s", script_name))
 	} else {
 		r.Logger.Details(fmt.Sprintf("SKIPPING SCRIPT: %s", script_name))
 	}
+}
+
+func (r Runner) RunProcScript(procPath string) {
+	_, script_name := path.Split(procPath)
+
+	b, err := ioutil.ReadFile(procPath)
+	if err != nil {
+		r.Logger.Fatal(err.Error())
+	}
+
+	r.Hasher.Write(b)
+	sha := base64.URLEncoding.EncodeToString((r.Hasher.Sum(nil)))
+	sql := string(b)
+	script_row := r.Database.GetScriptRun(script_name)
+
+	// proc has changed, re-run the script
+	if (script_row != nil && script_row.Hash != sha) || script_row == nil {
+		if !r.Config.DryRun {
+			r.Database.ApplyScript(sql, script_name, sha)
+		}
+		r.Logger.Success(fmt.Sprintf("APPLIED PROC: %s", script_name))
+	} else {
+		r.Logger.Details(fmt.Sprintf("SKIPPING PROC: %s", script_name))
+	}
+}
+
+func (r Runner) applyScripts(applyFunc RunScriptFunc, getScriptFilesFunc GetScriptFilesFunc) {
+	files, err := getScriptFilesFunc()
+	if err != nil {
+		r.Logger.Fatal(err.Error())
+	}
+
+	for _, f := range files {
+		if r.shouldApplyScript(f, r.Config.Environment) {
+			applyFunc(f)
+		}
+	}
+}
+
+func (r Runner) shouldApplyScript(script_name string, environment string) bool {
+	parts := strings.Split(script_name, ".")
+	if len(parts) <= 3 {
+		return true
+	}
+
+	length := len(parts)
+	if strings.ToLower(parts[length-2]) != "env" {
+		return true
+	}
+
+	target_environment := parts[length-3]
+
+	return strings.ToLower(environment) == strings.ToLower(target_environment)
 }
