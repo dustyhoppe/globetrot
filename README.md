@@ -105,3 +105,20 @@ A sample execution of the `migrate` command looks as follows:
     --password "password123!" \
     --port 3306 
 ```
+
+## Environment Scripts
+
+Globetrot provides support for running scripts that target a specific environment. To flag a script as being an environment specific script, make sure the script file extension is `.env.sql`. The full name of the script should follow the format `{SCRIPT_NAME}{ENVIRONMENT_NAME}.env.sql`
+
+If I wanted to create an environment script that targets the `PROD` environment, I could name the script `LoadUsers.PROD.env.sql`. When running the migration, I'd also need to specify the `--env` argument and give it a value of `PROD`.
+
+```bash
+./globetrot migrate --filePath "./playground" \
+    --database "sample_db" \
+    --databaseType "mysql" \
+    --server "localhost" \
+    --username "root" \
+    --password "password123!" \
+    --port 3306 \
+    --env "PROD" # This tells globetrot I'm running the script against the PROD environment
+```
