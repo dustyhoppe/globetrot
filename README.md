@@ -3,7 +3,7 @@
 ![globetrot logo blue](./docs/assets/globetrot_logo_b.png)
 ---
 
-Globetrot is a CLI tool used for managing database changes/migrations. It currently works with MySQL, PostgreSQL and SQL Server with plans of other database support in the future.
+Globetrot is a cross-platform CLI tool used for managing database changes/migrations. It currently works with MySQL, PostgreSQL and SQL Server with plans of other database support in the future.
 
 ## Getting globetrot
 
