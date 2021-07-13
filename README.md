@@ -72,7 +72,7 @@ A sample execution of the `init` command looks as follows:
 
 Executing the `migrate` command performs a database migration. The migration first executes any `up` scripts that have yet to be run against the target database. Once `up` scripts have been run, any new or modified `procs` scripts will then be applied.
 
-***Note: upon first execution, this command will setup it's migration tracking schema which is currently a singl table named `scripts_run`***
+***Note: upon first execution, this command will setup it's migration tracking schema which is currently a single table named `scripts_run`***
 
 ```
 Usage:

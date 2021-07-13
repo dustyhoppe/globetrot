@@ -1,11 +1,8 @@
 package utils
 
 import (
-	"crypto/sha256"
-	"encoding/base64"
 	"fmt"
 	"globetrot/database"
-	"hash"
 	"io/ioutil"
 	"os"
 	"path"
@@ -17,7 +14,7 @@ import (
 type Runner struct {
 	Config      Config
 	Database    database.Database
-	Hasher      hash.Hash
+	Hasher      *HashGenerator
 	Logger      *Logger
 	FileManager *FileManager
 }
@@ -28,9 +25,11 @@ type GetScriptFilesFunc func() ([]string, error)
 func (r *Runner) Init(config Config) {
 	r.Config = config
 	r.Database = database.NewDatabase(config.Type)
-	r.Hasher = sha256.New()
 	r.FileManager = &FileManager{filePath: config.FilePath}
 	r.Logger = &Logger{debug: true}
+
+	r.Hasher = new(HashGenerator)
+	r.Hasher.Init(true)
 }
 
 func (r *Runner) Initialize(directory string) {
@@ -83,16 +82,16 @@ func (r *Runner) Migrate() {
 }
 
 func (r Runner) RunUpScript(upPath string) {
-	_, script_name := path.Split(upPath)
+	_, script_name := filepath.Split(upPath)
 
 	b, err := ioutil.ReadFile(upPath)
 	if err != nil {
 		r.Logger.Fatal(err.Error())
 	}
 
-	r.Hasher.Write(b)
-	sha := base64.URLEncoding.EncodeToString((r.Hasher.Sum(nil)))
 	sql := string(b)
+	sha := r.Hasher.GenerateHash(sql)
+
 	script_row := r.Database.GetScriptRun(script_name)
 	if script_row != nil && script_row.Hash != sha {
 		r.Logger.Fatal(fmt.Sprintf("Changing of one-time script '%s' not allowed after application.\n", script_name))
@@ -115,9 +114,9 @@ func (r Runner) RunProcScript(procPath string) {
 		r.Logger.Fatal(err.Error())
 	}
 
-	r.Hasher.Write(b)
-	sha := base64.URLEncoding.EncodeToString((r.Hasher.Sum(nil)))
 	sql := string(b)
+	sha := r.Hasher.GenerateHash(sql)
+
 	script_row := r.Database.GetScriptRun(script_name)
 
 	// proc has changed, re-run the script

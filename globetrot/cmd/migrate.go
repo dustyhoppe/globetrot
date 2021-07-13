@@ -23,6 +23,9 @@ var (
 var migrateCommand = &cobra.Command{
 	Use:  "migrate",
 	Long: "Performs a database migration",
+	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		return initializeConfig(cmd)
+	},
 	Run: func(cmd *cobra.Command, args []string) {
 
 		config := &utils.Config{
