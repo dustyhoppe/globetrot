@@ -122,3 +122,96 @@ If I wanted to create an environment script that targets the `PROD` environment,
     --port 3306 \
     --env "PROD" # This tells globetrot I'm running the script against the PROD environment
 ```
+
+## Configuration
+
+In addition to passing configuration via command line arguments, you can use config files or environment variables as an alternative or supplemental approach for passing configuration.
+
+If configuration is passed using multiple sources, the priority order for configuration sources are:
+
+1. Command line arguments
+2. Environment variables
+3. Configuration files
+
+### Environment Variables
+
+To pass configuration via environment variables, you'll need to use the `GLOBETROT` prefix and make sure variables are set in all-caps.
+
+For example, to set the `password` to use when connecting to the database:
+
+```bash
+export GLOBETROT_PASSWORD=password123!
+```
+
+### Configuration Files
+
+You may load configuration via a file by specifying the directory in which the file is located using the `--configPath` argument. The supported formats are:
+* JSON
+* YAML
+* envfile
+* HCL
+* TOML
+
+Below are examples of providing configuration using each of these formats.
+
+#### **`globetrot.json`**
+```json
+{
+    "username": "sa",
+    "password": "password123!",
+    "server": "127.0.0.1",
+    "database": "globetrot",
+    "port": 1433,
+    "databaseType": "sqlserver",
+    "filePath": "./playground",
+    "environment": "production"
+}
+```
+
+#### **`globetrot.yaml`**
+```yaml
+username: sa
+password: password123!
+port: 1433
+databaseType: sqlserver
+server: 127.0.0.1
+database: Globetrot
+filePath: ./playground
+env: production
+```
+
+#### **`globetrot.env`**
+```env
+USERNAME=sa
+PASSWORD=password123!
+PORT=1433
+DATABASETYPE=sqlserver
+SERVER=127.0.0.1
+DATABASE=Globetrot
+FILEPATH=./playground
+ENV=production
+```
+
+#### **`globetrot.hcl`**
+```hcl
+username = "sa"
+password = "password123!"
+port = 1433
+databaseType = "sqlserver"
+server = "127.0.0.1"
+database = "Globetrot"
+filePath = "./playground"
+env = "production"
+```
+
+#### **`globetrot.toml`**
+```toml
+username = "sa"
+password = "password123!"
+port = 1433
+databaseType = "sqlserver"
+server = "127.0.0.1"
+database = "Globetrot"
+filePath = "../playground"
+env = "production"
+```

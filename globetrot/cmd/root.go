@@ -28,6 +28,10 @@ func initializeConfig(cmd *cobra.Command) error {
 
 	v.SetConfigName("globetrot")
 
+	if configFile == "" {
+		configFile = os.Getenv(fmt.Sprintf("%s_CONFIGPATH", envPrefix))
+	}
+
 	v.AddConfigPath(configFile)
 
 	if err := v.ReadInConfig(); err != nil {
