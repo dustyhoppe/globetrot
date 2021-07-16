@@ -4,7 +4,7 @@ import (
 	"fmt"
 )
 
-const print_debug_enabled = false
+const print_debug_enabled = true
 
 type TokenType int
 type StatementType int
@@ -67,7 +67,7 @@ func PrintToken(t *Token) {
 	}
 }
 
-func PrintStatement(s *ParsedBatch) {
+func PrintBatch(s *ParsedBatch) {
 
 	statementType := ""
 

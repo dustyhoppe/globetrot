@@ -179,8 +179,8 @@ func (s *Scanner) Whitespace() {
 }
 
 func (s *Scanner) General() {
-	for !s.IsDone() && s.IsLetterOrDigit(s.Peek()) {
-		if s.IsLetterOrDigit(rune(s.delimiter[0])) {
+	for !s.IsDone() && s.IsGeneralCharacter(s.Peek()) {
+		if s.IsGeneralCharacter(rune(s.delimiter[0])) {
 
 			if len(s.delimiter) == 1 && s.Peek() == rune(s.delimiter[0]) {
 				break
@@ -209,12 +209,12 @@ func (s *Scanner) MultiLineComment() {
 		if s.IsDone() {
 			panic(fmt.Sprintf("Unterminated comment on line %d", s.line))
 		}
-
-		s.NextChar() // consume *
-		s.NextChar() // consume /
-
-		s.AddToken(TOKEN_COMMENT)
 	}
+
+	s.NextChar() // consume *
+	s.NextChar() // consume /
+
+	s.AddToken(TOKEN_COMMENT)
 }
 
 func (s *Scanner) Comment() {
@@ -384,6 +384,6 @@ func (s *Scanner) AddEmptyToken(tokenType TokenType) {
 }
 
 /// Returns a flag indicating whether a given rune is a letter or digit
-func (s Scanner) IsLetterOrDigit(r rune) bool {
-	return unicode.IsLetter(r) || unicode.IsDigit(r)
+func (s Scanner) IsGeneralCharacter(r rune) bool {
+	return unicode.IsLetter(r) || unicode.IsDigit(r) || r == '_'
 }

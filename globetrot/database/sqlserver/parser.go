@@ -3,13 +3,13 @@ package sqlserver
 import "strings"
 
 type Parser struct {
-	script     string
-	scanner    *Scanner
-	delmiter   string
-	tokens     []*Token
-	statements []*ParsedBatch
-	start      int
-	current    int
+	script   string
+	scanner  *Scanner
+	delmiter string
+	tokens   []*Token
+	batches  []*ParsedBatch
+	start    int
+	current  int
 }
 
 func (p *Parser) Init(script string) {
@@ -27,17 +27,17 @@ func (p *Parser) Parse() []*ParsedBatch {
 
 	for !p.IsDone() {
 		p.start = p.current
-		statement := p.ParseStatement()
+		batch := p.ParseBatch()
 
-		if len(strings.TrimSpace(statement.value)) > 0 && statement.statementType != STATEMENT_BATCH_SEPARATOR {
-			p.statements = append(p.statements, statement)
+		if len(strings.TrimSpace(batch.value)) > 0 && batch.statementType != STATEMENT_BATCH_SEPARATOR {
+			p.batches = append(p.batches, batch)
 		}
 	}
 
-	return p.statements
+	return p.batches
 }
 
-func (p *Parser) ParseStatement() *ParsedBatch {
+func (p *Parser) ParseBatch() *ParsedBatch {
 	batchEnd := false
 	statementType := STATEMENT_SQL
 
@@ -75,14 +75,14 @@ func (p *Parser) ParseStatement() *ParsedBatch {
 		}
 	}
 
-	parsedStatement := &ParsedBatch{
+	parsedBatch := &ParsedBatch{
 		statementType: StatementType(statementType),
 		value:         sb.String(),
 	}
 
-	PrintStatement(parsedStatement)
+	PrintBatch(parsedBatch)
 
-	return parsedStatement
+	return parsedBatch
 }
 
 func (p *Parser) NextToken() *Token {
