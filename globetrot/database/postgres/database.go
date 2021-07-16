@@ -4,28 +4,46 @@ import (
 	"database/sql"
 	"fmt"
 	"globetrot/database/common"
+	"time"
 
 	_ "github.com/jackc/pgx/v4/stdlib"
 )
 
 type PostgresDatabase struct {
-	connection *sql.DB
-	database   string
+	database string
+	username string
+	password string
+	host     string
+	port     int
 }
 
-func (postgres *PostgresDatabase) Connect(username string, password string, host string, port int, database string) {
-	postgres.database = database
-	cs := fmt.Sprintf("postgresql://%s:%s@%s:%d/%s", username, password, host, port, database)
+func (postgres *PostgresDatabase) open() *sql.DB {
+	cs := fmt.Sprintf("postgresql://%s:%s@%s:%d/%s", postgres.username, postgres.password, postgres.host, postgres.port, postgres.database)
 	db, err := sql.Open("pgx", cs)
 
 	if err != nil {
 		panic(err.Error())
 	}
 
-	postgres.connection = db
+	db.SetMaxOpenConns(20)
+	db.SetMaxIdleConns(0)
+	db.SetConnMaxLifetime(time.Nanosecond)
+
+	return db
+}
+
+func (postgres *PostgresDatabase) Init(username string, password string, host string, port int, database string) {
+	postgres.username = username
+	postgres.password = password
+	postgres.host = host
+	postgres.port = port
+	postgres.database = database
 }
 
 func (postgres *PostgresDatabase) CreateMigrationsTable() {
+
+	connection := postgres.open()
+	defer connection.Close()
 
 	sql := `
 	CREATE TABLE IF NOT EXISTS scripts_run
@@ -37,7 +55,7 @@ func (postgres *PostgresDatabase) CreateMigrationsTable() {
 	GRANT SELECT ON scripts_run TO public;
 	`
 
-	_, err := postgres.connection.Exec(sql)
+	_, err := connection.Exec(sql)
 
 	if err != nil {
 		panic(err.Error())
@@ -45,8 +63,10 @@ func (postgres *PostgresDatabase) CreateMigrationsTable() {
 }
 
 func (postgres *PostgresDatabase) ApplyScript(sql string, script_name string, sha string) {
+	connection := postgres.open()
+	defer connection.Close()
 
-	_, err := postgres.connection.Exec(sql)
+	_, err := connection.Exec(sql)
 
 	if err != nil {
 		panic(err.Error())
@@ -55,7 +75,7 @@ func (postgres *PostgresDatabase) ApplyScript(sql string, script_name string, sh
 	script_sql := `INSERT INTO scripts_run (script_name, hash) VALUES ( '%s', '%s' )
 		ON CONFLICT (script_name) DO UPDATE SET hash='%s', date=CURRENT_TIMESTAMP;`
 
-	_, err = postgres.connection.Exec(fmt.Sprintf(script_sql, script_name, sha, sha))
+	_, err = connection.Exec(fmt.Sprintf(script_sql, script_name, sha, sha))
 	if err != nil {
 		panic(err.Error())
 	}
@@ -63,8 +83,11 @@ func (postgres *PostgresDatabase) ApplyScript(sql string, script_name string, sh
 
 func (postgres *PostgresDatabase) GetScriptRun(scriptName string) *common.ScriptRunRow {
 
+	connection := postgres.open()
+	defer connection.Close()
+
 	sql := fmt.Sprintf("SELECT script_name AS ScriptName, hash AS Hash FROM scripts_run WHERE script_name = '%s'", scriptName)
-	rows, err := postgres.connection.Query(sql)
+	rows, err := connection.Query(sql)
 	if err != nil {
 		panic(err.Error())
 	}
@@ -80,8 +103,4 @@ func (postgres *PostgresDatabase) GetScriptRun(scriptName string) *common.Script
 	}
 
 	return nil
-}
-
-func (postgres *PostgresDatabase) Close() {
-	postgres.connection.Close()
 }

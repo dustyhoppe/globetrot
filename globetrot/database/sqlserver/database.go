@@ -9,13 +9,15 @@ import (
 )
 
 type SqlServerDatabase struct {
-	connection *sql.DB
-	database   string
+	database string
+	username string
+	password string
+	host     string
+	port     int
 }
 
-func (sqlserver *SqlServerDatabase) Connect(username string, password string, host string, port int, database string) {
-	sqlserver.database = database
-	cs := fmt.Sprintf("sqlserver://%s:%s@%s:%d?database=%s", username, password, host, port, database)
+func (sqlserver *SqlServerDatabase) open() *sql.DB {
+	cs := fmt.Sprintf("sqlserver://%s:%s@%s:%d?database=%s", sqlserver.username, sqlserver.password, sqlserver.host, sqlserver.port, sqlserver.database)
 	db, err := sql.Open("sqlserver", cs)
 
 	fmt.Println(cs)
@@ -24,10 +26,20 @@ func (sqlserver *SqlServerDatabase) Connect(username string, password string, ho
 		panic(err.Error())
 	}
 
-	sqlserver.connection = db
+	return db
+}
+
+func (sqlserver *SqlServerDatabase) Init(username string, password string, host string, port int, database string) {
+	sqlserver.username = username
+	sqlserver.password = password
+	sqlserver.host = host
+	sqlserver.port = port
+	sqlserver.database = database
 }
 
 func (sqlserver *SqlServerDatabase) CreateMigrationsTable() {
+	connection := sqlserver.open()
+	defer connection.Close()
 
 	sql := `
 	IF NOT EXISTS ( SELECT 1 FROM sys.tables )
@@ -43,7 +55,7 @@ func (sqlserver *SqlServerDatabase) CreateMigrationsTable() {
 	END;
 	`
 
-	_, err := sqlserver.connection.Exec(sql)
+	_, err := connection.Exec(sql)
 
 	if err != nil {
 		panic(err.Error())
@@ -51,13 +63,15 @@ func (sqlserver *SqlServerDatabase) CreateMigrationsTable() {
 }
 
 func (sqlserver *SqlServerDatabase) ApplyScript(sql string, script_name string, sha string) {
+	connection := sqlserver.open()
+	defer connection.Close()
 
 	parser := new(Parser)
 	parser.Init(sql)
 	batches := parser.Parse()
 
 	for _, batch := range batches {
-		_, err := sqlserver.connection.Exec(batch.value)
+		_, err := connection.Exec(batch.value)
 
 		if err != nil {
 			panic(err.Error())
@@ -73,16 +87,18 @@ func (sqlserver *SqlServerDatabase) ApplyScript(sql string, script_name string, 
 	IF @@ROWCOUNT = 0
 		INSERT INTO scripts_run (script_name, hash) VALUES ( '%s', '%s' );`
 
-	_, err := sqlserver.connection.Exec(fmt.Sprintf(script_sql, sha, script_name, script_name, sha))
+	_, err := connection.Exec(fmt.Sprintf(script_sql, sha, script_name, script_name, sha))
 	if err != nil {
 		panic(err.Error())
 	}
 }
 
 func (sqlserver *SqlServerDatabase) GetScriptRun(scriptName string) *common.ScriptRunRow {
+	connection := sqlserver.open()
+	defer connection.Close()
 
 	sql := fmt.Sprintf("SELECT script_name AS ScriptName, hash AS Hash FROM scripts_run WHERE script_name = '%s'", scriptName)
-	rows, err := sqlserver.connection.Query(sql)
+	rows, err := connection.Query(sql)
 	if err != nil {
 		panic(err.Error())
 	}
@@ -98,8 +114,4 @@ func (sqlserver *SqlServerDatabase) GetScriptRun(scriptName string) *common.Scri
 	}
 
 	return nil
-}
-
-func (sqlserver *SqlServerDatabase) Close() {
-	sqlserver.connection.Close()
 }
