@@ -9,21 +9,35 @@ import (
 )
 
 type MySqlDatabase struct {
-	connection *sql.DB
+	database string
+	username string
+	password string
+	host     string
+	port     int
 }
 
-func (mysql *MySqlDatabase) Connect(username string, password string, host string, port int, database string) {
-	cs := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?multiStatements=true&autocommit=true", username, password, host, port, database)
+func (mysql *MySqlDatabase) open() *sql.DB {
+	cs := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?multiStatements=true&autocommit=true", mysql.username, mysql.password, mysql.host, mysql.port, mysql.database)
 	db, err := sql.Open("mysql", cs)
 
 	if err != nil {
 		panic(err.Error())
 	}
 
-	mysql.connection = db
+	return db
+}
+
+func (mysql *MySqlDatabase) Init(username string, password string, host string, port int, database string) {
+	mysql.username = username
+	mysql.password = password
+	mysql.host = host
+	mysql.port = port
+	mysql.database = database
 }
 
 func (mysql *MySqlDatabase) CreateMigrationsTable() {
+	connection := mysql.open()
+	defer connection.Close()
 
 	sql := `CREATE TABLE IF NOT EXISTS scripts_run (
 				script_name VARCHAR(260) NOT NULL PRIMARY KEY,
@@ -31,7 +45,7 @@ func (mysql *MySqlDatabase) CreateMigrationsTable() {
 				date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP()
 			)`
 
-	_, err := mysql.connection.Exec(sql)
+	_, err := connection.Exec(sql)
 
 	if err != nil {
 		panic(err.Error())
@@ -39,13 +53,15 @@ func (mysql *MySqlDatabase) CreateMigrationsTable() {
 }
 
 func (mysql *MySqlDatabase) ApplyScript(sql string, script_name string, sha string) {
+	connection := mysql.open()
+	defer connection.Close()
 
 	parser := new(Parser)
 	parser.Init(sql)
 	statements := parser.Parse()
 
 	for _, statement := range statements {
-		_, err := mysql.connection.Exec(statement.value)
+		_, err := connection.Exec(statement.value)
 
 		if err != nil {
 			panic(err.Error())
@@ -55,16 +71,18 @@ func (mysql *MySqlDatabase) ApplyScript(sql string, script_name string, sha stri
 	script_sql := `INSERT INTO scripts_run (script_name, hash) VALUES ( '%s', '%s' )
 		ON DUPLICATE KEY UPDATE hash='%s', date=CURRENT_TIMESTAMP();`
 
-	_, err := mysql.connection.Exec(fmt.Sprintf(script_sql, script_name, sha, sha))
+	_, err := connection.Exec(fmt.Sprintf(script_sql, script_name, sha, sha))
 	if err != nil {
 		panic(err.Error())
 	}
 }
 
 func (mysql *MySqlDatabase) GetScriptRun(scriptName string) *common.ScriptRunRow {
+	connection := mysql.open()
+	defer connection.Close()
 
 	sql := fmt.Sprintf("SELECT script_name AS ScriptName, hash AS Hash FROM scripts_run WHERE script_name = '%s'", scriptName)
-	rows, err := mysql.connection.Query(sql)
+	rows, err := connection.Query(sql)
 	if err != nil {
 		panic(err.Error())
 	}
@@ -80,8 +98,4 @@ func (mysql *MySqlDatabase) GetScriptRun(scriptName string) *common.ScriptRunRow
 	}
 
 	return nil
-}
-
-func (mysql *MySqlDatabase) Close() {
-	mysql.connection.Close()
 }

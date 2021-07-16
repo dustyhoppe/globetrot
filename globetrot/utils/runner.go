@@ -24,7 +24,8 @@ type GetScriptFilesFunc func() ([]string, error)
 
 func (r *Runner) Init(config Config) {
 	r.Config = config
-	r.Database = database.NewDatabase(config.Type)
+	r.Database = database.NewDatabase(config.Type, config.Username, config.Password, config.Host, config.Port, config.Database)
+
 	r.FileManager = &FileManager{filePath: config.FilePath}
 	r.Logger = &Logger{debug: true}
 
@@ -63,17 +64,12 @@ func (r *Runner) Migrate() {
 		r.Logger.Fatal(err.Error())
 	}
 
-	// Connect to the database
-	r.Database.Connect(r.Config.Username, r.Config.Password, r.Config.Host, r.Config.Port, r.Config.Database)
-
 	// Generate migration metadata table
 	r.Database.CreateMigrationsTable()
 	r.Logger.Details("Creating migration metadata table if necessary.\n")
 
 	r.applyScripts(r.RunUpScript, r.FileManager.GetUpScripts)
 	r.applyScripts(r.RunProcScript, r.FileManager.GetProcScripts)
-
-	r.Database.Close()
 
 	t := time.Now()
 	elapsed := t.Sub(start)

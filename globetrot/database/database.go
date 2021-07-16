@@ -10,21 +10,26 @@ import (
 )
 
 type Database interface {
-	Connect(username string, password string, host string, port int, database string)
+	Init(username string, password string, host string, port int, database string)
 	CreateMigrationsTable()
 	GetScriptRun(scriptName string) *common.ScriptRunRow
 	ApplyScript(sql string, script_name string, sha string)
-	Close()
 }
 
-func NewDatabase(databaseType string) Database {
+func NewDatabase(databaseType string, username string, password string, host string, port int, database string) Database {
 	switch databaseType {
 	case "mysql":
-		return new(mysql.MySqlDatabase)
+		database := new(mysql.MySqlDatabase)
+		database.Init(username, password, host, port, databaseType)
+		return database
 	case "postgres":
-		return new(postgres.PostgresDatabase)
+		database := new(postgres.PostgresDatabase)
+		database.Init(username, password, host, port, databaseType)
+		return database
 	case "sqlserver":
-		return new(sqlserver.SqlServerDatabase)
+		database := new(sqlserver.SqlServerDatabase)
+		database.Init(username, password, host, port, databaseType)
+		return database
 	default:
 		fmt.Printf("ERROR: %s is not a supported database type\n", databaseType)
 		os.Exit(1)
