@@ -58,6 +58,9 @@ func (r *Runner) Migrate() {
 
 	start := time.Now()
 
+	r.Database.Open()
+	defer r.Database.Close()
+
 	// Ensure proper directory structure
 	err := r.FileManager.EnsureDirectory()
 	if err != nil {
