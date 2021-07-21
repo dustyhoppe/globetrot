@@ -28,7 +28,7 @@ func (postgres *PostgresDatabase) Open() {
 
 	db.SetMaxOpenConns(20)
 	db.SetMaxIdleConns(0)
-	db.SetConnMaxLifetime(time.Nanosecond)
+	db.SetConnMaxLifetime(time.Minute)
 
 	postgres.connection = db
 }
