@@ -14,22 +14,24 @@ type Database interface {
 	CreateMigrationsTable()
 	GetScriptRun(scriptName string) *common.ScriptRunRow
 	ApplyScript(sql string, script_name string, sha string)
+	Close()
+	Open()
 }
 
 func NewDatabase(databaseType string, username string, password string, host string, port int, database string) Database {
 	switch databaseType {
 	case "mysql":
-		database := new(mysql.MySqlDatabase)
-		database.Init(username, password, host, port, databaseType)
-		return database
+		db := new(mysql.MySqlDatabase)
+		db.Init(username, password, host, port, database)
+		return db
 	case "postgres":
-		database := new(postgres.PostgresDatabase)
-		database.Init(username, password, host, port, databaseType)
-		return database
+		db := new(postgres.PostgresDatabase)
+		db.Init(username, password, host, port, database)
+		return db
 	case "sqlserver":
-		database := new(sqlserver.SqlServerDatabase)
-		database.Init(username, password, host, port, databaseType)
-		return database
+		db := new(sqlserver.SqlServerDatabase)
+		db.Init(username, password, host, port, database)
+		return db
 	default:
 		fmt.Printf("ERROR: %s is not a supported database type\n", databaseType)
 		os.Exit(1)
