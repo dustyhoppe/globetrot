@@ -78,6 +78,7 @@ func (mysql *MySqlDatabase) GetScriptRun(scriptName string) *common.ScriptRunRow
 
 	sql := fmt.Sprintf("SELECT script_name AS ScriptName, hash AS Hash FROM scripts_run WHERE script_name = '%s'", scriptName)
 	rows, err := mysql.connection.Query(sql)
+	defer rows.Close()
 	if err != nil {
 		panic(err.Error())
 	}

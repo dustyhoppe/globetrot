@@ -94,6 +94,7 @@ func (sqlserver *SqlServerDatabase) GetScriptRun(scriptName string) *common.Scri
 
 	sql := fmt.Sprintf("SELECT script_name AS ScriptName, hash AS Hash FROM scripts_run WHERE script_name = '%s'", scriptName)
 	rows, err := sqlserver.connection.Query(sql)
+	defer rows.Close()
 	if err != nil {
 		panic(err.Error())
 	}
