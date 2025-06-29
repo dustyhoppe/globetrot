@@ -24,12 +24,15 @@ func (h *HashGenerator) Init(normalizeEndings bool) {
 }
 
 func (h *HashGenerator) GenerateHash(script string) string {
-	script = strings.Replace(script, windowsLineEnding, unixLineEnding, -1)
-	script = strings.Replace(script, macLineEnding, unixLineEnding, -1)
+        if h.normalizeEndings {
+                script = strings.ReplaceAll(script, windowsLineEnding, unixLineEnding)
+                script = strings.ReplaceAll(script, macLineEnding, unixLineEnding)
+        }
 
-	b := []byte(script)
-	h.hasher.Write(b)
-	sha := base64.URLEncoding.EncodeToString((h.hasher.Sum(nil)))
+        b := []byte(script)
+        h.hasher.Reset()
+        h.hasher.Write(b)
+        sha := base64.URLEncoding.EncodeToString(h.hasher.Sum(nil))
 
 	return sha
 }

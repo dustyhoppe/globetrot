@@ -78,11 +78,11 @@ func (postgres *PostgresDatabase) ApplyScript(sql string, script_name string, sh
 func (postgres *PostgresDatabase) GetScriptRun(scriptName string) *common.ScriptRunRow {
 
 	sql := fmt.Sprintf("SELECT script_name AS ScriptName, hash AS Hash FROM scripts_run WHERE script_name = '%s'", scriptName)
-	rows, err := postgres.connection.Query(sql)
-	defer rows.Close()
-	if err != nil {
-		panic(err.Error())
-	}
+        rows, err := postgres.connection.Query(sql)
+        if err != nil {
+                panic(err.Error())
+        }
+        defer rows.Close()
 
 	if rows.Next() {
 		row := common.ScriptRunRow{}

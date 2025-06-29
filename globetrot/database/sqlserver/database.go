@@ -21,8 +21,6 @@ func (sqlserver *SqlServerDatabase) Open() {
 	cs := fmt.Sprintf("sqlserver://%s:%s@%s:%d?database=%s", sqlserver.username, sqlserver.password, sqlserver.host, sqlserver.port, sqlserver.database)
 	db, err := sql.Open("sqlserver", cs)
 
-	fmt.Println(cs)
-
 	if err != nil {
 		panic(err.Error())
 	}
@@ -41,7 +39,7 @@ func (sqlserver *SqlServerDatabase) Init(username string, password string, host 
 func (sqlserver *SqlServerDatabase) CreateMigrationsTable() {
 
 	sql := `
-	IF NOT EXISTS ( SELECT 1 FROM sys.tables )
+        IF NOT EXISTS (SELECT * FROM sys.objects WHERE type = 'U' AND name = 'scripts_run')
 	BEGIN
 
 		CREATE TABLE scripts_run
@@ -93,11 +91,11 @@ func (sqlserver *SqlServerDatabase) ApplyScript(sql string, script_name string, 
 func (sqlserver *SqlServerDatabase) GetScriptRun(scriptName string) *common.ScriptRunRow {
 
 	sql := fmt.Sprintf("SELECT script_name AS ScriptName, hash AS Hash FROM scripts_run WHERE script_name = '%s'", scriptName)
-	rows, err := sqlserver.connection.Query(sql)
-	defer rows.Close()
-	if err != nil {
-		panic(err.Error())
-	}
+        rows, err := sqlserver.connection.Query(sql)
+        if err != nil {
+                panic(err.Error())
+        }
+        defer rows.Close()
 
 	if rows.Next() {
 		row := common.ScriptRunRow{}
