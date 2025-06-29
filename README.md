@@ -215,3 +215,16 @@ database = "Globetrot"
 filePath = "../playground"
 env = "production"
 ```
+
+Once you have created a configuration file in any of the above formats,
+you can run a migration by simply pointing globetrot at the directory
+containing that file. The tool will look for a file named `globetrot`
+with one of the supported extensions and use its values in place of
+individual command‑line arguments.
+
+```bash
+./globetrot migrate --configPath "./path/to/config"
+```
+
+Alternatively, you may set the `GLOBETROT_CONFIGPATH` environment
+variable to avoid passing `--configPath` every time.
