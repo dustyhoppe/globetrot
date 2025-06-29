@@ -77,11 +77,11 @@ func (mysql *MySqlDatabase) ApplyScript(sql string, script_name string, sha stri
 func (mysql *MySqlDatabase) GetScriptRun(scriptName string) *common.ScriptRunRow {
 
 	sql := fmt.Sprintf("SELECT script_name AS ScriptName, hash AS Hash FROM scripts_run WHERE script_name = '%s'", scriptName)
-	rows, err := mysql.connection.Query(sql)
-	defer rows.Close()
-	if err != nil {
-		panic(err.Error())
-	}
+        rows, err := mysql.connection.Query(sql)
+        if err != nil {
+                panic(err.Error())
+        }
+        defer rows.Close()
 
 	if rows.Next() {
 		row := common.ScriptRunRow{}
